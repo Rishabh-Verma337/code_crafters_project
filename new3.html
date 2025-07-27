@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Street Vendor Supplier Portal</title>
+  <style>
+    h2{
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        background-color: #e6f0ff;
+        color: #007bff;
+        font-size: 24px;
+        font-weight: bold;
+        box-shadow: 0 0 10px rgba(0, 123, 255, 0.2);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    body { 
+        font-family: 'Segoe UI',  sans-serif;
+        background:linear-gradient(to right,#74ebd5,#ABC6E5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .form-group{
+        background: rgb(237, 237, 237);
+        padding: 10px;  
+        border-radius: 15px;  
+        box-shadow: 0px 8px 20px rgba(0, 0, 0,0.2);
+        width: 300px;
+        margin-bottom: 12px
+        
+    }
+    button{
+        width: 100px;
+        padding: 12px;
+        margin-top: 15px;
+        border: none;
+        color: white;
+        font-size: 16px;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+    body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+
+    .btn { padding: 8px 16px; background: #259c29; color: white; border: none; cursor: pointer; align-items: center;}
+    .btn.logout { background: #dc3545; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+    #orderPage, #vendorSection, #supplierSection, #vendorOrdersSection, #serviceProviderSection { display: none; }
+    tfoot td { background: #dcacac; }
+  </style>
+</head>
+<body>
+  <!-- Login Page -->
+  <div id="loginPage">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <div class="form-group"><label>Username:</label><input type="text" id="username" required /></div>
+      <div class="form-group"><label>Password:</label><input type="password" id="password" required /></div>
+      <button class="btn" type="submit">Login</button>
+    </form>
+    <p>No account? <a href="#" onclick="showRegister()">Register</a></p>
+  </div>
+
+  <!-- Register Page -->
+  <div id="registerPage" style="display:none;">
+    <h2>Register</h2>
+    <form id="registerForm">
+      <div class="form-group"><label>Username:</label><input type="text" id="newUsername" required /></div>
+      <div class="form-group"><label>Password:</label><input type="password" id="newPassword" required /></div>
+      <div class="form-group"><label>Role:</label>
+        <select id="userRole">
+          <option value="vendor">Vendor</option>
+          <option value="service">Service Provider</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">Register</button>
+    </form>
+    <p><a href="#" onclick="showLogin()">Back to login</a></p>
+  </div>
+
+  <!-- Order Page -->
+  <div id="orderPage">
+    <h2 id="welcomeMessage"></h2>
+    <button onclick="logout()" class="btn logout">Logout</button>
+
+    <!-- Vendor Section -->
+    <div id="vendorSection">
+      <h3>Enter Your Location & Select Raw Material</h3>
+      <div class="form-group">
+        <input type="text" id="vendorLocationInput" placeholder="e.g. Delhi" required />
+      </div>
+      <div class="form-group">
+        <select id="rawMaterialRequestSelect">
+          <option value="">-- Select Raw Material --</option>
+          <option value="Vegetables">Vegetables</option>
+          <option value="Cooking Oil">Cooking Oil</option>
+          <option value="Spices">Spices</option>
+          <option value="Rice">Rice</option>
+          <option value="Wheat Flour">Wheat Flour</option>
+          <option value="Sugar">Sugar</option>
+          <option value="Salt">Salt</option>
+          <option value="Plastic Plates">Plastic Plates</option>
+          <option value="Napkins">Napkins</option>
+          <option value="Bottled Water">Bottled Water</option>
+        </select>
+      </div>
+
+      <div id="supplierSection">
+        <div class="form-group">
+          <label>Sort by:</label>
+          <select id="sortOption">
+            <option value="price">Price</option>
+            <option value="rating">Rating</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Material</th><th>Price</th><th>Rating</th><th>Action</th></tr></thead>
+          <tbody id="supplierListBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vendor Orders Section -->
+    <div id="vendorOrdersSection">
+        <h3>My Orders</h3>
+        <table id="vendorOrdersTable">
+            <thead>
+              <tr><th>Order ID</th><th>Supplier</th><th>Material</th><th>Quantity</th><th>Total Price</th><th>Status</th><th>Order Date</th><th>Action</th></tr>
+            </thead>
+            <tbody id="vendorOrdersListBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" style="text-align:right; font-weight:bold;">Grand Total:</td>
+                <td id="grandTotalCell" style="font-weight:bold;">$0</td>
+                <td colspan="3"></td>
+              </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Service Provider Section -->
+    <div id="serviceProviderSection">
+        <h3>Manage Orders & Billing</h3>
+        <table id="serviceOrdersTable">
+            <thead><tr><th>Order ID</th><th>Vendor</th><th>Material</th><th>Quantity</th><th>Total Price</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="serviceOrdersListBody"></tbody>
+        </table>
+    </div>
+
+  </div>
+
+  <script>
+    // Initialize users and orders from localStorage
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    let orders = JSON.parse(localStorage.getItem('orders')) || [];
+    let currentUser = null;
+
+    // Maintain persistent order IDs
+    let nextOrderId = Number(localStorage.getItem('nextOrderId')) || (orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1);
+
+    function updateNextOrderId() {
+      localStorage.setItem('nextOrderId', nextOrderId);
+    }
+
+    // Helper functions for showing/hiding pages
+    function showLogin() {
+      document.getElementById('registerPage').style.display = 'none';
+      document.getElementById('loginPage').style.display = 'block';
+    }
+
+    function showRegister() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('registerPage').style.display = 'block';
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('orderPage').style.display = 'none';
+      document.getElementById('loginPage').style.display = 'block';
+      document.getElementById('vendorSection').style.display = 'none';
+      document.getElementById('vendorOrdersSection').style.display = 'none';
+      document.getElementById('serviceProviderSection').style.display = 'none';
+      document.getElementById('supplierSection').style.display = 'none';
+    }
+
+    // Register Form
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value.trim();
+      const role = document.getElementById('userRole').value;
+
+      if (users.find(u => u.username === username)) {
+        alert('Username already exists. Please choose a different one.');
+        return;
+      }
+
+      users.push({ username, password, role });
+      localStorage.setItem('users', JSON.stringify(users));
+      alert('Registered successfully. Please login with your new account.');
+      showLogin();
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newPassword').value = '';
+    });
+
+    // Login Form
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      const user = users.find(u => u.username === username && u.password === password);
+      if (!user) {
+        alert('Invalid username or password. Please try again or register.');
+        return;
+      }
+
+      currentUser = user;
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('orderPage').style.display = 'block';
+      document.getElementById('welcomeMessage').textContent = `Welcome, ${username} (${user.role})`;
+
+      if (user.role === 'vendor') {
+        document.getElementById('vendorSection').style.display = 'block';
+        document.getElementById('vendorOrdersSection').style.display = 'block';
+        displayVendorOrders();
+      } else if (user.role === 'service') {
+        document.getElementById('serviceProviderSection').style.display = 'block';
+        displayServiceOrders();
+      }
+
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    });
+
+    // Dummy suppliers
+    const allSuppliers = [
+      { name: "VegeSup1", material: "Vegetables", price: 382, rating: 4.3, location: "Mumbai" },
+      { name: "VegeSup3", material: "Vegetables", price: 975, rating: 3.7, location: "Delhi" },
+      { name: "CookSup5", material: "Cooking Oil", price: 508, rating: 4.4, location: "Delhi" },
+      { name: "RiceSup1", material: "Rice", price: 409, rating: 3.6, location: "Delhi" },
+      { name: "WheaSup3", material: "Wheat Flour", price: 968, rating: 4.2, location: "Delhi" },
+      { name: "SugaSup2", material: "Sugar", price: 812, rating: 4.9, location: "Delhi" },
+      { name: "SaltSup3", material: "Salt", price: 1026, rating: 3.6, location: "Delhi" },
+      { name: "PlasSup1", material: "Plastic Plates", price: 749, rating: 4.5, location: "Delhi" },
+      { name: "NapkSup1", material: "Napkins", price: 373, rating: 4.3, location: "Delhi" },
+      { name: "BottSup1", material: "Bottled Water", price: 1112, rating: 3.8, location: "Delhi" }
+    ];
+
+    // Filter suppliers
+    document.getElementById('rawMaterialRequestSelect').addEventListener('change', filterSuppliers);
+    document.getElementById('vendorLocationInput').addEventListener('input', filterSuppliers);
+    document.getElementById('sortOption').addEventListener('change', filterSuppliers);
+
+    function displaySuppliers(filtered) {
+      const tbody = document.getElementById('supplierListBody');
+      tbody.innerHTML = filtered.length === 0
+        ? '<tr><td colspan="5">No suppliers found.</td></tr>'
+        : filtered.map(s =>
+            `<tr>
+                <td>${s.name}</td>
+                <td>${s.material}</td>
+                <td>$${s.price}</td>
+                <td>${s.rating}</td>
+                <td><button class="btn order-btn" data-supplier='${JSON.stringify(s)}'>Place Order</button></td>
+            </tr>`
+          ).join('');
+
+      document.querySelectorAll('.order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const supplier = JSON.parse(this.dataset.supplier);
+          const quantity = prompt(`Enter quantity for ${supplier.material} from ${supplier.name}:`);
+          const qty = Number(quantity);
+          if (qty && qty > 0) {
+            const newOrder = {
+              id: nextOrderId++,
+              vendorUsername: currentUser.username,
+              supplierName: supplier.name,
+              material: supplier.material,
+              unitPrice: supplier.price,
+              quantity: qty,
+              totalPrice: supplier.price * qty,
+              status: 'Pending',
+              orderDate: new Date().toLocaleDateString()
+            };
+            orders.push(newOrder);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            updateNextOrderId();
+            alert('Order placed successfully!');
+            displayVendorOrders();
+            document.getElementById('vendorOrdersSection').scrollIntoView();
+          } else if (quantity !== null) {
+            alert('Please enter a valid positive quantity.');
+          }
+        });
+      });
+    }
+
+    function filterSuppliers() {
+      const material = document.getElementById('rawMaterialRequestSelect').value;
+      const location = document.getElementById('vendorLocationInput').value.trim().toLowerCase();
+      const sortBy = document.getElementById('sortOption').value;
+
+      if (!material || !location) {
+        document.getElementById('supplierSection').style.display = 'none';
+        return;
+      }
+
+      let filtered = allSuppliers.filter(s =>
+        s.material === material && s.location.toLowerCase() === location
+      );
+
+      if (sortBy === 'price') {
+        filtered.sort((a, b) => a.price - b.price);
+      } else if (sortBy === 'rating') {
+        filtered.sort((a, b) => b.rating - a.rating);
+      }
+
+      document.getElementById('supplierSection').style.display = 'block';
+      displaySuppliers(filtered);
+    }
+
+    // Vendor Orders with Grand Total
+    function displayVendorOrders() {
+      const tbody = document.getElementById('vendorOrdersListBody');
+      const grandTotalCell = document.getElementById('grandTotalCell');
+      const vendorOrders = orders.filter(order => order.vendorUsername === currentUser.username);
+
+      if (vendorOrders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8">No orders placed yet.</td></tr>';
+        grandTotalCell.textContent = '$0';
+        return;
+      }
+
+      let grandTotal = 0;
+      tbody.innerHTML = vendorOrders.map(order => {
+        grandTotal += order.totalPrice;
+        return `
+          <tr>
+              <td>${order.id}</td>
+              <td>${order.supplierName}</td>
+              <td>${order.material}</td>
+              <td>${order.quantity}</td>
+              <td>$${order.totalPrice}</td>
+              <td>${order.status}</td>
+              <td>${order.orderDate}</td>
+              <td>${order.status === 'Pending' ? `<button class="btn" onclick="cancelOrder(${order.id})">Cancel</button>` : ''}</td>
+          </tr>`;
+      }).join('');
+      grandTotalCell.textContent = `$${grandTotal}`;
+    }
+
+    function cancelOrder(orderId) {
+      const index = orders.findIndex(o => o.id === orderId && o.status === 'Pending');
+      if (index > -1) {
+        orders.splice(index, 1);
+        localStorage.setItem('orders', JSON.stringify(orders));
+        alert(`Order ${orderId} cancelled.`);
+        displayVendorOrders();
+        displayServiceOrders();
+      }
+    }
+
+    // Service Provider Orders
+    function displayServiceOrders() {
+      const tbody = document.getElementById('serviceOrdersListBody');
+      const relevantOrders = orders;
+
+      tbody.innerHTML = relevantOrders.length === 0
+        ? '<tr><td colspan="7">No orders to manage.</td></tr>'
+        : relevantOrders.map(order =>
+            `<tr>
+                <td>${order.id}</td>
+                <td>${order.vendorUsername}</td>
+                <td>${order.material}</td>
+                <td>${order.quantity}</td>
+                <td>$${order.totalPrice}</td>
+                <td>${order.status}</td>
+                <td>
+                    ${order.status === 'Pending' ? `<button class="btn" onclick="generateInvoice(${order.id})">Generate Invoice</button>` : ''}
+                    ${order.status === 'Billed' ? `<button class="btn" onclick="markAsPaid(${order.id})">Mark as Paid</button>` : ''}
+                </td>
+            </tr>`
+          ).join('');
+    }
+
+    function generateInvoice(orderId) {
+      const orderIndex = orders.findIndex(o => o.id === orderId);
+      if (orderIndex > -1) {
+        orders[orderIndex].status = 'Billed';
+        localStorage.setItem('orders', JSON.stringify(orders));
+        alert(`Invoice generated for Order ID: ${orderId}\nTotal Amount: $${orders[orderIndex].totalPrice}`);
+        displayServiceOrders();
+        displayVendorOrders();
+      }
+    }
+
+    function markAsPaid(orderId) {
+      const orderIndex = orders.findIndex(o => o.id === orderId);
+      if (orderIndex > -1) {
+        orders[orderIndex].status = 'Completed';
+        localStorage.setItem('orders', JSON.stringify(orders));
+        alert(`Order ID: ${orderId} marked as paid.`);
+        displayServiceOrders();
+        displayVendorOrders();
+      }
+    }
+  </script>
+</body>
+</html>
